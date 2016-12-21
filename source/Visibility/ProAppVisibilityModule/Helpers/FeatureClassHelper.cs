@@ -170,6 +170,8 @@ namespace ProAppVisibilityModule.Helpers
 
             var environments = Geoprocessing.MakeEnvironmentArray(overwriteoutput: true);
 
+            //System.Threading.Thread.Sleep(5000);
+
             IGPResult result = await Geoprocessing.ExecuteToolAsync("ConstructSightLines_3d", Geoprocessing.MakeValueArray(arguments.ToArray()), environments, flags: GPExecuteToolFlags.Default);
 
             if (result.IsFailed)
@@ -245,6 +247,7 @@ namespace ProAppVisibilityModule.Helpers
 
             var environments = Geoprocessing.MakeEnvironmentArray(overwriteoutput: true);
 
+            
             IGPResult result = await Geoprocessing.ExecuteToolAsync("LineOfSight_3d", Geoprocessing.MakeValueArray(arguments.ToArray()), environments, flags: GPExecuteToolFlags.Default);
 
             if(result.IsFailed)

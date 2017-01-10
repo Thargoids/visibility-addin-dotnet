@@ -26,7 +26,7 @@ namespace ArcMapAddinVisibility.ViewModels
             AngularUnitType = AngularTypes.DEGREES;
 
             ObserverAddInPoints = new ObservableCollection<AddInPoint>();
-            
+
             ToolMode = MapPointToolMode.Unknown;
             SurfaceLayerNames = new ObservableCollection<string>();
             SelectedSurfaceName = string.Empty;
@@ -85,7 +85,7 @@ namespace ArcMapAddinVisibility.ViewModels
         public string SelectedSurfaceName { get; set; }
         public DistanceTypes OffsetUnitType { get; set; }
         public AngularTypes AngularUnitType { get; set; }
-        
+
         #endregion
 
         #region Commands
@@ -201,7 +201,7 @@ namespace ArcMapAddinVisibility.ViewModels
             {
                 // in tool mode "Observer" we add observer points
                 // otherwise ignore
-                
+
                 var color = new RgbColorClass() { Blue = 255 } as IColor;
                 var guid = AddGraphicToMap(point, color, true);
                 var addInPoint = new AddInPoint() { Point = point, GUID = guid };
@@ -218,12 +218,12 @@ namespace ArcMapAddinVisibility.ViewModels
             if (point == null)
                 return;
 
-            if(ToolMode == MapPointToolMode.Observer)
+            if (ToolMode == MapPointToolMode.Observer)
             {
                 Point1Formatted = string.Empty;
                 Point1 = point;
             }
-            else if(ToolMode == MapPointToolMode.Target)
+            else if (ToolMode == MapPointToolMode.Target)
             {
                 Point2Formatted = string.Empty;
                 Point2 = point;
@@ -240,7 +240,7 @@ namespace ArcMapAddinVisibility.ViewModels
         {
             var keyCommandMode = obj as string;
 
-            if(keyCommandMode == VisibilityLibrary.Properties.Resources.ToolModeObserver)
+            if (keyCommandMode == VisibilityLibrary.Properties.Resources.ToolModeObserver)
             {
                 ToolMode = MapPointToolMode.Observer;
                 OnNewMapPointEvent(Point1);
@@ -414,14 +414,15 @@ namespace ArcMapAddinVisibility.ViewModels
         /// </summary>
         /// <param name="map">IMap</param>
         /// <returns></returns>
-        public List<string> GetSurfaceNamesFromMap(IMap map, bool IncludeTinLayers = false)
+        public Tuple<List<string>, List<Boolean>> GetSurfaceNamesFromMap(IMap map, bool IncludeTinLayers = false)
         {
             var list = new List<string>();
+            var enabledList = new List<Boolean>();
 
             var layers = map.get_Layers();
             var layer = layers.Next();
 
-            while(layer != null)
+            while (layer != null)
             {
                 try
                 {
@@ -442,13 +443,28 @@ namespace ArcMapAddinVisibility.ViewModels
 
                     if (ml != null)
                     {
+
+
                         if (ml.PreviewLayer != null && ml.PreviewLayer.Raster != null)
                         {
                             rasterSurface.PutRaster(ml.PreviewLayer.Raster, 0);
 
                             surface = rasterSurface as ISurface;
                             if (surface != null)
+                            {
                                 list.Add(layer.Name);
+
+                                // Set combobox item to disabled if service layer
+                                if (ml.FilePath != "")
+                                {
+                                    enabledList.Add(true);
+                                }
+                                else
+                                {
+                                    enabledList.Add(false);
+                                }
+                            }
+
                         }
                         layer = layers.Next();
                         continue;
@@ -461,8 +477,22 @@ namespace ArcMapAddinVisibility.ViewModels
 
                         surface = rasterSurface as ISurface;
                         if (surface != null)
+                        {
                             list.Add(layer.Name);
+
+                            // Set combobox item to disabled if service layer
+                            if (rasterLayer.FilePath != "")
+                            {
+                                enabledList.Add(true);
+                            }
+                            else
+                            {
+                                enabledList.Add(false);
+                            }
+                        }
                         layer = layers.Next();
+
+
                         continue;
                     }
                 }
@@ -474,7 +504,7 @@ namespace ArcMapAddinVisibility.ViewModels
                 layer = layers.Next();
             }
 
-            return list;
+            return new Tuple<List<string>, List<Boolean>>(list, enabledList);
         }
 
         /// <summary>
@@ -509,8 +539,19 @@ namespace ArcMapAddinVisibility.ViewModels
 
             SurfaceLayerNames.Clear();
 
-            foreach (var name in GetSurfaceNamesFromMap(map, (this.GetType() == typeof(LLOSViewModel)) ? true : false))
-                SurfaceLayerNames.Add(name);
+            //foreach (var name in GetSurfaceNamesFromMap(map, (this.GetType() == typeof(LLOSViewModel)) ? true : false))
+            //  SurfaceLayerNames.Add(name);
+
+            Tuple<List<string>, List<Boolean>> surfaceDetails = GetSurfaceNamesFromMap(map, (this.GetType() == typeof(LLOSViewModel)) ? true : false);
+
+            // Only add layers to combobox if they are not service layers
+            for (int i = 0; i < surfaceDetails.Item1.Count; i++)
+            {
+                if (surfaceDetails.Item2[i] == true)
+                {
+                    SurfaceLayerNames.Add(surfaceDetails.Item1[i]);
+                }
+            }
 
             if (SurfaceLayerNames.Contains(tempName))
                 SelectedSurfaceName = tempName;
